@@ -34,7 +34,8 @@ export default async function PredictPage({ params }: Props) {
 
   if (!jornada) notFound();
 
-  const isLocked = new Date() >= new Date(jornada.lock_datetime);
+  const hasSubmitted = (preds ?? []).length > 0;
+  const isLocked = hasSubmitted || new Date() >= new Date(jornada.lock_datetime);
 
   return (
     <PredictForm
@@ -44,6 +45,7 @@ export default async function PredictPage({ params }: Props) {
       matches={matchRows ?? []}
       predictions={preds ?? []}
       isLocked={isLocked}
+      hasSubmitted={hasSubmitted}
     />
   );
 }

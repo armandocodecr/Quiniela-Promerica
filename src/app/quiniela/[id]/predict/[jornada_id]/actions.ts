@@ -32,19 +32,31 @@ export async function upsertPredictions(
 
   if (!member) return { error: "No eres miembro de esta quiniela." };
 
-  // Upsert predicciones
+  // Bloquear si el usuario ya tiene predicciones para esta jornada
+  const matchIds = predictions.map((p) => p.matchId);
+  const { data: existing } = await supabase
+    .from("predictions")
+    .select("id")
+    .eq("quiniela_id", quinielaId)
+    .eq("user_id", user.id)
+    .in("match_id", matchIds)
+    .limit(1);
+
+  if (existing && existing.length > 0)
+    return { error: "Ya enviaste tus predicciones. No se pueden modificar." };
+
+  // Insertar predicciones (insert, no upsert — ya no se permite editar)
   const rows = predictions.map((p) => ({
     user_id: user.id,
     quiniela_id: quinielaId,
     match_id: p.matchId,
     home_score_pred: p.home,
     away_score_pred: p.away,
-    updated_at: new Date().toISOString(),
   }));
 
   const { error } = await supabase
     .from("predictions")
-    .upsert(rows, { onConflict: "user_id,quiniela_id,match_id" });
+    .insert(rows);
 
   if (error) return { error: error.message };
   return { success: "¡Predicciones guardadas!" };
