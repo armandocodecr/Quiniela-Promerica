@@ -4,6 +4,8 @@ import { Trophy, ArrowLeft, Copy, Calendar, Target } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { LeaderboardRealtime } from "@/components/leaderboard-realtime";
+import { DeleteQuinielaButton } from "@/components/delete-quiniela-button";
+import { isOwner } from "@/lib/owner";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import Image from "next/image";
@@ -36,6 +38,8 @@ export default async function QuinielaPage({ params }: Props) {
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  const owner = isOwner(user.email);
 
   const [{ data: quiniela }, { data: membership }] = await Promise.all([
     supabase
@@ -127,25 +131,55 @@ export default async function QuinielaPage({ params }: Props) {
       </header>
 
       <div className="mx-auto max-w-4xl px-4 py-8 space-y-8">
-        {/* Código + botón predecir */}
+        {/* CTA predecir — solo cuando hay jornada activa y el usuario aún no envió */}
+        {activeJornada && !hasSubmitted && (
+          <Link
+            href={`/quiniela/${id}/predict/${activeJornada.id}`}
+            className="flex items-center justify-between gap-4 rounded-xl border border-primary/30 bg-primary px-5 py-4 text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-foreground/15">
+                <Target aria-hidden="true" className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold leading-none">
+                  Jornada {activeJornada.number} — ¡Haz tus predicciones!
+                </p>
+                <p className="mt-1 text-xs text-primary-foreground/70">
+                  Cierre:{" "}
+                  {new Date(activeJornada.lock_datetime).toLocaleString("es-CR", {
+                    weekday: "short", day: "numeric", month: "short",
+                    hour: "2-digit", minute: "2-digit",
+                  })}
+                </p>
+              </div>
+            </div>
+            <ArrowLeft aria-hidden="true" className="h-4 w-4 shrink-0 rotate-180 opacity-70" />
+          </Link>
+        )}
+
+        {/* Código + enlace "ver predicciones" cuando ya envió */}
         <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Copy aria-hidden="true" className="h-3.5 w-3.5" />
-            Código:{" "}
-            <code className="font-mono font-semibold text-foreground tracking-wider">
-              {quiniela.invite_code}
-            </code>
-          </div>
-          {activeJornada && (
+          {owner && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Copy aria-hidden="true" className="h-3.5 w-3.5" />
+              Código:{" "}
+              <code className="font-mono font-semibold text-foreground tracking-wider">
+                {quiniela.invite_code}
+              </code>
+            </div>
+          )}
+          {activeJornada && hasSubmitted && (
             <Link
               href={`/quiniela/${id}/predict/${activeJornada.id}`}
-              className={cn(buttonVariants({ size: "sm", variant: hasSubmitted ? "outline" : "default" }))}
+              className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
             >
               <Target aria-hidden="true" className="h-4 w-4 mr-1.5" />
-              {hasSubmitted
-                ? `Ver tus predicciones — Jornada ${activeJornada.number}`
-                : `Predecir — Jornada ${activeJornada.number}`}
+              Ver mis predicciones — Jornada {activeJornada.number}
             </Link>
+          )}
+          {owner && (
+            <DeleteQuinielaButton quinielaId={id} quinielaName={quiniela.name} />
           )}
         </div>
 
