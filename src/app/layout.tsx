@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Roboto, Roboto_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -17,6 +17,9 @@ const robotoMono = Roboto_Mono({
 export const metadata: Metadata = {
   title: "Quiniela Promerica",
   description: "Quinielas de la Liga Promerica de Costa Rica entre amigos",
+};
+
+export const viewport: Viewport = {
   themeColor: "#252525",
 };
 

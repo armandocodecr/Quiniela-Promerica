@@ -33,12 +33,13 @@ export default async function DashboardPage() {
       .eq("user_id", user.id)
       .order("total_points", { ascending: false })
       .then((r) => r.data),
-    supabase
-      .from("cache")
-      .select("data")
-      .eq("key", "standings")
-      .single()
-      .then((r) => (r.data?.data as Standing[] | null) ?? null)
+    Promise.resolve(
+      supabase
+        .from("cache")
+        .select("data")
+        .eq("key", "standings")
+        .single()
+    ).then((r) => (r.data?.data as Standing[] | null) ?? null)
       .catch(() => null),
   ]);
 
