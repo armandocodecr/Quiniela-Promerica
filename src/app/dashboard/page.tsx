@@ -2,8 +2,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { type Standing } from "@/lib/api-football";
 import { StandingsTable } from "@/components/standings-table";
-import { Trophy, Plus, Users } from "lucide-react";
+import { Trophy, Plus, Users, CheckCircle2, Clock, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { logoutAction } from "@/app/(auth)/actions";
 import { isOwner } from "@/lib/owner";
@@ -42,6 +43,58 @@ export default async function DashboardPage() {
     ).then((r) => (r.data?.data as Standing[] | null) ?? null)
       .catch(() => null),
   ]);
+
+  const quinielaIds = (memberships ?? []).map(
+    (m) => (m.quinielas as unknown as { id: string }).id
+  );
+
+  // Fetch active jornada, all members of user's quinielas, and user predictions — in parallel
+  const [activeJornada, allMembers] = await Promise.all([
+    supabase
+      .from("jornadas")
+      .select("id, number, status")
+      .in("status", ["upcoming", "active"])
+      .order("number", { ascending: false })
+      .limit(1)
+      .single()
+      .then((r) => r.data),
+    quinielaIds.length > 0
+      ? supabase
+          .from("quiniela_members")
+          .select("quiniela_id, user_id, total_points")
+          .in("quiniela_id", quinielaIds)
+          .order("total_points", { ascending: false })
+          .then((r) => r.data ?? [])
+      : Promise.resolve([]),
+  ]);
+
+  // Check which quinielas the user has already predicted for the active jornada
+  const predictedSet = new Set<string>();
+  if (activeJornada) {
+    const { data: matchIds } = await supabase
+      .from("matches")
+      .select("id")
+      .eq("jornada_id", activeJornada.id);
+
+    const ids = (matchIds ?? []).map((m) => m.id);
+    if (ids.length > 0) {
+      const { data: userPreds } = await supabase
+        .from("predictions")
+        .select("quiniela_id")
+        .eq("user_id", user.id)
+        .in("match_id", ids);
+      (userPreds ?? []).forEach((p) => predictedSet.add(p.quiniela_id));
+    }
+  }
+
+  // Compute rank + member count per quiniela
+  const quinielaStats: Record<string, { rank: number; memberCount: number }> = {};
+  for (const qid of quinielaIds) {
+    const members = (allMembers as { quiniela_id: string; user_id: string; total_points: number }[])
+      .filter((m) => m.quiniela_id === qid);
+    const rank = members.findIndex((m) => m.user_id === user.id) + 1;
+    quinielaStats[qid] = { rank, memberCount: members.length };
+  }
 
   return (
     <main className="min-h-dvh bg-background">
@@ -102,22 +155,53 @@ export default async function DashboardPage() {
                   name: string;
                   invite_code: string;
                 };
+                const stats = quinielaStats[q.id];
+                const hasPredicted = predictedSet.has(q.id);
+
                 return (
                   <Link key={q.id} href={`/quiniela/${q.id}`}>
-                    <Card className="hover:border-primary transition-colors cursor-pointer">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-sm">{q.name}</CardTitle>
-                      </CardHeader>
-                      <CardContent className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">
-                          Código:{" "}
-                          <code className="font-mono text-foreground">
-                            {q.invite_code}
-                          </code>
-                        </span>
-                        <span className="text-base font-bold text-primary">
-                          {m.total_points} pts
-                        </span>
+                    <Card className="hover:border-primary transition-colors cursor-pointer h-full">
+                      <CardContent className="px-4 py-4 flex flex-col gap-3">
+                        {/* Top row: name + chevron */}
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-sm font-semibold leading-tight">{q.name}</span>
+                          <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
+                        </div>
+
+                        {/* Middle row: rank + points */}
+                        <div className="flex items-center gap-3">
+                          {stats && stats.rank > 0 && (
+                            <div className="flex flex-col items-center justify-center rounded-lg bg-muted px-3 py-1.5 min-w-[52px]">
+                              <span className="text-base font-bold leading-none">{stats.rank}°</span>
+                              <span className="text-[10px] text-muted-foreground mt-0.5">
+                                de {stats.memberCount}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex flex-col">
+                            <span className="text-xl font-bold text-primary leading-none">
+                              {m.total_points}
+                            </span>
+                            <span className="text-xs text-muted-foreground">puntos</span>
+                          </div>
+                        </div>
+
+                        {/* Bottom row: jornada status */}
+                        {activeJornada && (
+                          <div className="flex items-center gap-1.5">
+                            {hasPredicted ? (
+                              <Badge variant="secondary" className="gap-1 text-xs font-normal">
+                                <CheckCircle2 aria-hidden="true" className="h-3 w-3 text-green-600" />
+                                Jornada {activeJornada.number} · Enviadas
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="gap-1 text-xs font-normal border-yellow-400 text-yellow-700 bg-yellow-50">
+                                <Clock aria-hidden="true" className="h-3 w-3" />
+                                Jornada {activeJornada.number} · Pendiente
+                              </Badge>
+                            )}
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   </Link>
