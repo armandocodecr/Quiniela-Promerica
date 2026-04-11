@@ -42,9 +42,10 @@ interface Props {
   matches: Match[];
   predictions: Prediction[];
   isLocked: boolean;
+  hasSubmitted: boolean;
 }
 
-export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictions, isLocked }: Props) {
+export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictions, isLocked, hasSubmitted }: Props) {
   const predsMap: Record<string, Prediction> = {};
   const initValues: Record<string, { home: string; away: string }> = {};
 
@@ -149,7 +150,9 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
         {isLocked && !isCompleted && (
           <div className="flex items-center gap-2 rounded-md border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
             <Lock aria-hidden="true" className="h-4 w-4 shrink-0" />
-            Las predicciones están cerradas. Los resultados aparecerán al terminar los partidos.
+            {hasSubmitted
+              ? "Ya enviaste tus predicciones. No se pueden modificar."
+              : "Las predicciones están cerradas. Los resultados aparecerán al terminar los partidos."}
           </div>
         )}
 

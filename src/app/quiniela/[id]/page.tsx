@@ -80,6 +80,20 @@ export default async function QuinielaPage({ params }: Props) {
 
   const matches: MatchRow[] = (matchRows ?? []) as MatchRow[];
 
+  // Verificar si el usuario ya envió predicciones para esta jornada
+  const matchIds = matches.map((m) => m.id);
+  const { data: userPreds } = matchIds.length > 0
+    ? await supabase
+        .from("predictions")
+        .select("id")
+        .eq("quiniela_id", id)
+        .eq("user_id", user.id)
+        .in("match_id", matchIds)
+        .limit(1)
+    : { data: [] };
+
+  const hasSubmitted = (userPreds ?? []).length > 0;
+
   const initialMembers = (members ?? []).map((m) => ({
     user_id: m.user_id,
     username: (m.profiles as unknown as { username: string })?.username ?? "—",
@@ -125,10 +139,12 @@ export default async function QuinielaPage({ params }: Props) {
           {activeJornada && (
             <Link
               href={`/quiniela/${id}/predict/${activeJornada.id}`}
-              className={cn(buttonVariants({ size: "sm" }))}
+              className={cn(buttonVariants({ size: "sm", variant: hasSubmitted ? "outline" : "default" }))}
             >
               <Target aria-hidden="true" className="h-4 w-4 mr-1.5" />
-              Predecir — Jornada {activeJornada.number}
+              {hasSubmitted
+                ? `Ver tus predicciones — Jornada ${activeJornada.number}`
+                : `Predecir — Jornada ${activeJornada.number}`}
             </Link>
           )}
         </div>
