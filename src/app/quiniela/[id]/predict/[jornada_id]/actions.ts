@@ -32,8 +32,9 @@ export async function upsertPredictions(
 
   if (!member) return { error: "No eres miembro de esta quiniela." };
 
-  // Bloquear si el usuario ya tiene predicciones para esta jornada
   const matchIds = predictions.map((p) => p.matchId);
+
+  // Bloquear si el usuario ya tiene predicciones para esta jornada
   const { data: existing } = await supabase
     .from("predictions")
     .select("id")
@@ -45,8 +46,22 @@ export async function upsertPredictions(
   if (existing && existing.length > 0)
     return { error: "Ya enviaste tus predicciones. No se pueden modificar." };
 
+  // Solo permitir predicciones para partidos que aún no han empezado
+  const { data: validMatches } = await supabase
+    .from("matches")
+    .select("id")
+    .in("id", matchIds)
+    .eq("status", "upcoming")
+    .gt("match_datetime", new Date().toISOString());
+
+  const validIds = new Set((validMatches ?? []).map((m) => m.id));
+  const validPredictions = predictions.filter((p) => validIds.has(p.matchId));
+
+  if (validPredictions.length === 0)
+    return { error: "No hay partidos disponibles para predecir." };
+
   // Insertar predicciones (insert, no upsert — ya no se permite editar)
-  const rows = predictions.map((p) => ({
+  const rows = validPredictions.map((p) => ({
     user_id: user.id,
     quiniela_id: quinielaId,
     match_id: p.matchId,

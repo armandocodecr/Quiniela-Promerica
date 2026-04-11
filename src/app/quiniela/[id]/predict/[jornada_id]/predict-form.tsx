@@ -63,8 +63,17 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
   const [saveStatus, setSaveStatus] = useState<{ error?: string; success?: string } | null>(null);
   const [isPending, setIsPending] = useState(false);
 
+  // Un partido está bloqueado si: la jornada cerró, el usuario ya envió,
+  // el partido ya empezó (por hora) o su status no es 'upcoming'
+  const isMatchLocked = (m: Match) =>
+    isLocked ||
+    m.status === "finished" ||
+    m.status === "live" ||
+    new Date(m.match_datetime) <= new Date();
+
+  const hasEditableMatches = matches.some((m) => !isMatchLocked(m));
+
   const handleChange = (matchId: string, side: "home" | "away", val: string) => {
-    if (isLocked) return;
     const clean = val.replace(/[^0-9]/g, "").slice(0, 2);
     setValues((prev) => ({ ...prev, [matchId]: { ...prev[matchId], [side]: clean } }));
   };
@@ -74,7 +83,9 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
     setIsPending(true);
     setSaveStatus(null);
 
+    // Solo enviar predicciones de partidos que aún no han empezado
     const preds = matches
+      .filter((m) => !isMatchLocked(m))
       .map((m) => ({
         matchId: m.id,
         home: parseInt(values[m.id]?.home ?? ""),
@@ -83,7 +94,7 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
       .filter((p) => !isNaN(p.home) && !isNaN(p.away));
 
     if (preds.length === 0) {
-      setSaveStatus({ error: "Completa al menos una predicción." });
+      setSaveStatus({ error: "Completa al menos una predicción para los partidos disponibles." });
       setIsPending(false);
       return;
     }
@@ -201,7 +212,7 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
                   </div>
 
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {isLocked ? (
+                    {isMatchLocked(m) ? (
                       <div className="flex items-center gap-1.5">
                         <span className={`w-11 h-11 rounded-md border flex items-center justify-center text-base font-bold
                           ${pred && hasResult
@@ -275,7 +286,7 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
           );
         })}
 
-        {!isLocked && matches.length > 0 && (
+        {!isLocked && hasEditableMatches && (
           <div className="pt-2 space-y-3">
             {saveStatus?.error && (
               <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-md px-3 py-2">
