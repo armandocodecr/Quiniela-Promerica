@@ -36,6 +36,24 @@ export async function createQuiniela(
   redirect(`/quiniela/${quinielaId}`);
 }
 
+export async function deleteQuiniela(
+  quinielaId: string
+): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado." };
+  if (!isOwner(user.email)) return { error: "Acceso denegado." };
+
+  const { error } = await supabase
+    .from("quinielas")
+    .delete()
+    .eq("id", quinielaId);
+
+  if (error) return { error: error.message };
+
+  redirect("/dashboard");
+}
+
 export async function joinQuiniela(
   _prevState: { error: string } | undefined,
   formData: FormData
