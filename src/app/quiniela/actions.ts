@@ -54,6 +54,34 @@ export async function deleteQuiniela(
   redirect("/dashboard");
 }
 
+export async function leaveQuiniela(
+  quinielaId: string
+): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado." };
+
+  // El owner no puede salir — debe eliminar la quiniela
+  const { data: quiniela } = await supabase
+    .from("quinielas")
+    .select("created_by")
+    .eq("id", quinielaId)
+    .single();
+
+  if (quiniela?.created_by === user.id)
+    return { error: "Eres el creador. Elimina la quiniela si quieres borrarla." };
+
+  const { error } = await supabase
+    .from("quiniela_members")
+    .delete()
+    .eq("quiniela_id", quinielaId)
+    .eq("user_id", user.id);
+
+  if (error) return { error: error.message };
+
+  redirect("/dashboard");
+}
+
 export async function joinQuiniela(
   _prevState: { error: string } | undefined,
   formData: FormData

@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { LeaderboardRealtime } from "@/components/leaderboard-realtime";
 import { DeleteQuinielaButton } from "@/components/delete-quiniela-button";
+import { LeaveQuinielaButton } from "@/components/leave-quiniela-button";
 import { isOwner } from "@/lib/owner";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -178,9 +179,10 @@ export default async function QuinielaPage({ params }: Props) {
               Ver mis predicciones — Jornada {activeJornada.number}
             </Link>
           )}
-          {owner && (
-            <DeleteQuinielaButton quinielaId={id} quinielaName={quiniela.name} />
-          )}
+          {owner
+            ? <DeleteQuinielaButton quinielaId={id} quinielaName={quiniela.name} />
+            : <LeaveQuinielaButton quinielaId={id} quinielaName={quiniela.name} />
+          }
         </div>
 
         <div className="grid gap-8 lg:grid-cols-2">
