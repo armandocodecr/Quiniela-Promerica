@@ -11,17 +11,6 @@ export async function upsertPredictions(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado." };
 
-  // Verificar lock en el servidor (doble capa junto con RLS)
-  const { data: jornada } = await supabase
-    .from("jornadas")
-    .select("lock_datetime, status")
-    .eq("id", jornadaId)
-    .single();
-
-  if (!jornada) return { error: "Jornada no encontrada." };
-  if (new Date() >= new Date(jornada.lock_datetime))
-    return { error: "El plazo para predecir ya cerró." };
-
   // Verificar membresía
   const { data: member } = await supabase
     .from("quiniela_members")
@@ -34,19 +23,17 @@ export async function upsertPredictions(
 
   const matchIds = predictions.map((p) => p.matchId);
 
-  // Bloquear si el usuario ya tiene predicciones para esta jornada
+  // Excluir partidos que el usuario ya predijo (no se pueden modificar)
   const { data: existing } = await supabase
     .from("predictions")
-    .select("id")
+    .select("match_id")
     .eq("quiniela_id", quinielaId)
     .eq("user_id", user.id)
-    .in("match_id", matchIds)
-    .limit(1);
+    .in("match_id", matchIds);
 
-  if (existing && existing.length > 0)
-    return { error: "Ya enviaste tus predicciones. No se pueden modificar." };
+  const alreadyPredictedIds = new Set((existing ?? []).map((e) => e.match_id));
 
-  // Solo permitir predicciones para partidos que aún no han empezado
+  // Solo permitir predicciones para partidos que aún no han empezado y no fueron predichos
   const { data: validMatches } = await supabase
     .from("matches")
     .select("id")
@@ -54,7 +41,9 @@ export async function upsertPredictions(
     .eq("status", "upcoming")
     .gt("match_datetime", new Date().toISOString());
 
-  const validIds = new Set((validMatches ?? []).map((m) => m.id));
+  const validIds = new Set(
+    (validMatches ?? []).map((m) => m.id).filter((id) => !alreadyPredictedIds.has(id))
+  );
   const validPredictions = predictions.filter((p) => validIds.has(p.matchId));
 
   if (validPredictions.length === 0)

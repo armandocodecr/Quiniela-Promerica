@@ -34,9 +34,6 @@ export default async function PredictPage({ params }: Props) {
 
   if (!jornada) notFound();
 
-  const hasSubmitted = (preds ?? []).length > 0;
-  const isLocked = hasSubmitted || new Date() >= new Date(jornada.lock_datetime);
-
   return (
     <PredictForm
       quinielaId={quinielaId}
@@ -44,8 +41,6 @@ export default async function PredictPage({ params }: Props) {
       jornada={jornada}
       matches={matchRows ?? []}
       predictions={preds ?? []}
-      isLocked={isLocked}
-      hasSubmitted={hasSubmitted}
     />
   );
 }

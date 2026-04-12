@@ -41,11 +41,9 @@ interface Props {
   jornada: Jornada;
   matches: Match[];
   predictions: Prediction[];
-  isLocked: boolean;
-  hasSubmitted: boolean;
 }
 
-export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictions, isLocked, hasSubmitted }: Props) {
+export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictions }: Props) {
   const predsMap: Record<string, Prediction> = {};
   const initValues: Record<string, { home: string; away: string }> = {};
 
@@ -63,13 +61,13 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
   const [saveStatus, setSaveStatus] = useState<{ error?: string; success?: string } | null>(null);
   const [isPending, setIsPending] = useState(false);
 
-  // Un partido está bloqueado si: la jornada cerró, el usuario ya envió,
-  // el partido ya empezó (por hora) o su status no es 'upcoming'
+  // Un partido está bloqueado si: ya empezó (por hora), está en curso,
+  // ya terminó, o el usuario ya envió una predicción para ese partido específico.
   const isMatchLocked = (m: Match) =>
-    isLocked ||
     m.status === "finished" ||
     m.status === "live" ||
-    new Date(m.match_datetime) <= new Date();
+    new Date(m.match_datetime) <= new Date() ||
+    !!predState[m.id];
 
   const hasEditableMatches = matches.some((m) => !isMatchLocked(m));
 
@@ -79,7 +77,7 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
   };
 
   const handleSubmit = async () => {
-    if (isLocked) return;
+    if (!hasEditableMatches) return;
     setIsPending(true);
     setSaveStatus(null);
 
@@ -125,7 +123,7 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
               Jornada {jornada.number}
             </h1>
             <p className="text-xs text-muted-foreground flex items-center gap-1">
-              {isLocked ? (
+              {!hasEditableMatches ? (
                 <><Lock aria-hidden="true" className="h-3 w-3" /> Predicciones cerradas</>
               ) : (
                 <>
@@ -158,12 +156,10 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
           </div>
         )}
 
-        {isLocked && !isCompleted && (
+        {!hasEditableMatches && !isCompleted && (
           <div className="flex items-center gap-2 rounded-md border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
             <Lock aria-hidden="true" className="h-4 w-4 shrink-0" />
-            {hasSubmitted
-              ? "Ya enviaste tus predicciones. No se pueden modificar."
-              : "Las predicciones están cerradas. Los resultados aparecerán al terminar los partidos."}
+            Las predicciones están cerradas. Los resultados aparecerán al terminar los partidos.
           </div>
         )}
 
@@ -286,7 +282,7 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
           );
         })}
 
-        {!isLocked && hasEditableMatches && (
+        {hasEditableMatches && (
           <div className="pt-2 space-y-3">
             {saveStatus?.error && (
               <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-md px-3 py-2">
