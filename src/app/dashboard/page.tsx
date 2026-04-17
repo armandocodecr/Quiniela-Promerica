@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { type Standing } from "@/lib/api-football";
 import { StandingsTable } from "@/components/standings-table";
-import { Trophy, Plus, Users, CheckCircle2, Clock, ChevronRight } from "lucide-react";
+import { Trophy, Plus, Users, CheckCircle2, Clock, ChevronRight, UserCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -110,13 +110,17 @@ export default async function DashboardPage() {
             <h1 className="text-base font-bold leading-none">
               Quiniela Promerica
             </h1>
-            <Link
-              href="/profile"
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
+            <p className="text-xs text-muted-foreground">
               {profile?.username ?? user.email}
-            </Link>
+            </p>
           </div>
+          <Link
+            href="/profile"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            <UserCircle aria-hidden="true" className="h-4 w-4 mr-1" />
+            Mi perfil
+          </Link>
           <form action={logoutAction}>
             <Button variant="ghost" size="sm" type="submit">
               Salir

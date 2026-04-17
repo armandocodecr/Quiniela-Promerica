@@ -22,6 +22,7 @@ const usernameSchema = z.object({
 
 const passwordSchema = z
   .object({
+    currentPassword: z.string().min(1, { error: "Ingresa tu contraseña actual" }),
     password: z
       .string()
       .min(8, { error: "Mínimo 8 caracteres" })
@@ -37,6 +38,7 @@ type UsernameValues = z.infer<typeof usernameSchema>;
 type PasswordValues = z.infer<typeof passwordSchema>;
 
 export function ProfileForm({ currentUsername }: { currentUsername: string }) {
+  const [showCurrent, setShowCurrent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [usernameSuccess, setUsernameSuccess] = useState(false);
@@ -49,7 +51,7 @@ export function ProfileForm({ currentUsername }: { currentUsername: string }) {
 
   const passwordForm = useForm<PasswordValues>({
     resolver: zodResolver(passwordSchema),
-    defaultValues: { password: "", confirmPassword: "" },
+    defaultValues: { currentPassword: "", password: "", confirmPassword: "" },
   });
 
   const onUsernameSubmit = async (values: UsernameValues) => {
@@ -64,7 +66,7 @@ export function ProfileForm({ currentUsername }: { currentUsername: string }) {
 
   const onPasswordSubmit = async (values: PasswordValues) => {
     setPasswordSuccess(false);
-    const result = await updatePasswordAction(values.password);
+    const result = await updatePasswordAction(values.currentPassword, values.password);
     if (result?.error) {
       passwordForm.setError("root", { message: result.error });
     } else {
@@ -151,6 +153,35 @@ export function ProfileForm({ currentUsername }: { currentUsername: string }) {
             onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}
             className="space-y-4"
           >
+            <div className="space-y-1.5">
+              <label htmlFor="currentPassword" className="text-sm font-medium">
+                Contraseña actual
+              </label>
+              <div className="relative">
+                <input
+                  id="currentPassword"
+                  type={showCurrent ? "text" : "password"}
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  className={inputClass}
+                  {...passwordForm.register("currentPassword")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrent((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showCurrent ? "Ocultar contraseña" : "Mostrar contraseña"}
+                >
+                  {showCurrent ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {passwordForm.formState.errors.currentPassword && (
+                <p role="alert" className="text-xs text-red-500">
+                  {passwordForm.formState.errors.currentPassword.message}
+                </p>
+              )}
+            </div>
+
             <div className="space-y-1.5">
               <label htmlFor="password" className="text-sm font-medium">
                 Nueva contraseña
