@@ -40,7 +40,8 @@ GET https://site.api.espn.com/apis/v2/sports/soccer/crc.1/scoreboard  → partid
 | Resultado | Puntos |
 |-----------|--------|
 | Marcador exacto (ej: predijo 2-1, fue 2-1) | 3 pts |
-| Empate acertado (predijo cualquier empate, fue empate) | 1 pt |
+| Ganador correcto sin marcador exacto (ej: predijo 2-0, fue 1-0) | 1 pt |
+| Empate acertado sin marcador exacto (predijo cualquier empate, fue empate) | 1 pt |
 | Incorrecto | 0 pts |
 
 ---
@@ -132,9 +133,15 @@ src/
 
 ### 9. Scoring (`src/lib/scoring.ts`)
 ```typescript
+function getOutcome(score: { home: number; away: number }): "home" | "away" | "draw" {
+  if (score.home > score.away) return "home";
+  if (score.home < score.away) return "away";
+  return "draw";
+}
+
 function calcPoints(pred: {home: number, away: number}, actual: {home: number, away: number}): number {
   if (pred.home === actual.home && pred.away === actual.away) return 3; // marcador exacto
-  if (pred.home === pred.away && actual.home === actual.away) return 1; // empate acertado
+  if (getOutcome(pred) === getOutcome(actual)) return 1; // ganador/empate correcto
   return 0;
 }
 ```
