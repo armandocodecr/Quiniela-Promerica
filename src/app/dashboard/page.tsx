@@ -110,9 +110,12 @@ export default async function DashboardPage() {
             <h1 className="text-base font-bold leading-none">
               Quiniela Promerica
             </h1>
-            <p className="text-xs text-muted-foreground">
+            <Link
+              href="/profile"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
               {profile?.username ?? user.email}
-            </p>
+            </Link>
           </div>
           <form action={logoutAction}>
             <Button variant="ghost" size="sm" type="submit">
