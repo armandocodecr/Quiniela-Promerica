@@ -5,7 +5,7 @@ import { upsertPredictions } from "./actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trophy, ArrowLeft, Lock, Save } from "lucide-react";
+import { Trophy, ArrowLeft, Lock, Save, Radio } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -61,12 +61,11 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
   const [saveStatus, setSaveStatus] = useState<{ error?: string; success?: string } | null>(null);
   const [isPending, setIsPending] = useState(false);
 
-  // Un partido está bloqueado si: ya empezó (por hora), está en curso,
-  // ya terminó, o el usuario ya envió una predicción para ese partido específico.
+  // Un partido está bloqueado si: está en curso, ya terminó,
+  // o el usuario ya envió predicción para ese partido.
   const isMatchLocked = (m: Match) =>
     m.status === "finished" ||
     m.status === "live" ||
-    new Date(m.match_datetime) <= new Date() ||
     !!predState[m.id];
 
   const hasEditableMatches = matches.some((m) => !isMatchLocked(m));
@@ -126,13 +125,7 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
               {!hasEditableMatches ? (
                 <><Lock aria-hidden="true" className="h-3 w-3" /> Predicciones cerradas</>
               ) : (
-                <>
-                  Cierre:{" "}
-                  {new Date(jornada.lock_datetime).toLocaleString("es-CR", {
-                    weekday: "short", day: "numeric", month: "short",
-                    hour: "2-digit", minute: "2-digit",
-                  })}
-                </>
+                <>Predecí antes de que empiece cada partido</>
               )}
             </p>
           </div>
@@ -170,12 +163,26 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
           return (
             <Card key={m.id}>
               <CardContent className="px-4 py-4 space-y-3">
-                <p className="text-xs text-center text-muted-foreground">
-                  {new Date(m.match_datetime).toLocaleString("es-CR", {
-                    weekday: "short", day: "numeric", month: "short",
-                    hour: "2-digit", minute: "2-digit",
-                  })}
-                </p>
+                <div className="flex items-center justify-center gap-2">
+                  <p className="text-xs text-center text-muted-foreground">
+                    {new Date(m.match_datetime).toLocaleString("es-CR", {
+                      weekday: "short", day: "numeric", month: "short",
+                      hour: "2-digit", minute: "2-digit",
+                    })}
+                  </p>
+                  {m.status === "live" && (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-full px-2 py-0.5">
+                      <Radio aria-hidden="true" className="h-3 w-3 animate-pulse" />
+                      EN VIVO
+                    </span>
+                  )}
+                  {m.status === "finished" && (
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
+                      <Lock aria-hidden="true" className="h-3 w-3" />
+                      Finalizado
+                    </span>
+                  )}
+                </div>
 
                 {hasResult && (
                   <div className="flex items-center gap-2 mb-1">

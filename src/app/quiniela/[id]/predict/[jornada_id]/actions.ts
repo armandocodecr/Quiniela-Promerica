@@ -33,13 +33,12 @@ export async function upsertPredictions(
 
   const alreadyPredictedIds = new Set((existing ?? []).map((e) => e.match_id));
 
-  // Solo permitir predicciones para partidos que aún no han empezado y no fueron predichos
+  // Solo permitir predicciones para partidos que aún no han empezado (status upcoming)
   const { data: validMatches } = await supabase
     .from("matches")
     .select("id")
     .in("id", matchIds)
-    .eq("status", "upcoming")
-    .gt("match_datetime", new Date().toISOString());
+    .eq("status", "upcoming");
 
   const validIds = new Set(
     (validMatches ?? []).map((m) => m.id).filter((id) => !alreadyPredictedIds.has(id))
