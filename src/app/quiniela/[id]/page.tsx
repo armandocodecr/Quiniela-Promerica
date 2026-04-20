@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Trophy, ArrowLeft, Copy, Calendar, Target } from "lucide-react";
+import { Trophy, ArrowLeft, Copy, Calendar, Target, History } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { LeaderboardRealtime } from "@/components/leaderboard-realtime";
@@ -179,6 +179,13 @@ export default async function QuinielaPage({ params }: Props) {
               Ver mis predicciones — Jornada {activeJornada.number}
             </Link>
           )}
+          <Link
+            href={`/quiniela/${id}/historial`}
+            className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+          >
+            <History aria-hidden="true" className="h-4 w-4 mr-1.5" />
+            Mis jornadas
+          </Link>
           {owner
             ? <DeleteQuinielaButton quinielaId={id} quinielaName={quiniela.name} />
             : <LeaveQuinielaButton quinielaId={id} quinielaName={quiniela.name} />
