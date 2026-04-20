@@ -60,7 +60,7 @@ export async function GET(request: Request) {
 
   for (const dbMatch of dbMatches) {
     const espnMatch = finished.find((f) => f.fixture.id === dbMatch.espn_id);
-    if (!espnMatch || espnMatch.goals.home === null || espnMatch.goals.away === null)
+    if (!espnMatch || espnMatch.goals.home == null || espnMatch.goals.away == null)
       continue;
 
     const homeScore = espnMatch.goals.home;

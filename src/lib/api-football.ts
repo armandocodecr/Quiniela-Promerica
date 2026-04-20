@@ -87,6 +87,12 @@ export async function getFixtures(date?: string): Promise<Fixture[]> {
     const away = comp.competitors.find((c: ESPNCompetitor) => c.homeAway === "away");
     const finished = comp.status?.type?.completed ?? false;
 
+    const parseScore = (s: string | undefined): number | null => {
+      if (s == null || s === "") return null;
+      const n = Number(s);
+      return isNaN(n) ? null : n;
+    };
+
     return {
       fixture: {
         id: event.id,
@@ -106,8 +112,8 @@ export async function getFixtures(date?: string): Promise<Fixture[]> {
         },
       },
       goals: {
-        home: finished ? Number(home?.score) : null,
-        away: finished ? Number(away?.score) : null,
+        home: finished ? parseScore(home?.score) : null,
+        away: finished ? parseScore(away?.score) : null,
       },
       league: { round: event.season?.slug ?? "" },
     } satisfies Fixture;

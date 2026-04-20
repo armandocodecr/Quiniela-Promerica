@@ -74,7 +74,7 @@ export async function syncResults(): Promise<{ error?: string; success?: string 
 
   for (const dbMatch of dbMatches) {
     const espnMatch = finished.find((f) => f.fixture.id === dbMatch.espn_id);
-    if (!espnMatch || espnMatch.goals.home === null || espnMatch.goals.away === null) continue;
+    if (!espnMatch || espnMatch.goals.home == null || espnMatch.goals.away == null) continue;
 
     const homeScore = espnMatch.goals.home;
     const awayScore = espnMatch.goals.away;
