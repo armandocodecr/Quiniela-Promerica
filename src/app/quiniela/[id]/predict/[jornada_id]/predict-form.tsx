@@ -56,7 +56,7 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
     };
   });
 
-  const [predState] = useState<Record<string, Prediction>>(predsMap);
+  const [predState, setPredState] = useState<Record<string, Prediction>>(predsMap);
   const [values, setValues] = useState<Record<string, { home: string; away: string }>>(initValues);
   const [saveStatus, setSaveStatus] = useState<{ error?: string; success?: string } | null>(null);
   const [isPending, setIsPending] = useState(false);
@@ -98,6 +98,22 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
 
     const result = await upsertPredictions(quinielaId, jornadaId, preds);
     setSaveStatus(result);
+
+    if (result.success) {
+      setPredState((prev) => {
+        const next = { ...prev };
+        for (const p of preds) {
+          next[p.matchId] = {
+            match_id: p.matchId,
+            home_score_pred: p.home,
+            away_score_pred: p.away,
+            points_earned: 0,
+          };
+        }
+        return next;
+      });
+    }
+
     setIsPending(false);
   };
 
