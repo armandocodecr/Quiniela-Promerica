@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getFixtures, getStandings } from "@/lib/api-football";
 import { calcPoints } from "@/lib/scoring";
 import { isOwner } from "@/lib/owner";
+import { syncStuckMatches } from "@/lib/sync-stuck-matches";
 
 export async function syncStandings(): Promise<{ error?: string; success?: string }> {
   const supabase = await createClient();
@@ -58,7 +59,15 @@ export async function syncResults(): Promise<{ error?: string; success?: string 
     }
   } catch { /* non-fatal */ }
 
-  if (!finished.length) return { success: "No hay partidos finalizados hoy en ESPN." };
+  if (!finished.length) {
+    // Aunque no haya partidos hoy, igualmente buscar partidos pasados atascados
+    const stuck = await syncStuckMatches(supabase);
+    const parts: string[] = ["No hay partidos finalizados hoy en ESPN."];
+    if (stuck.recovered > 0) parts.push(`${stuck.recovered} partido(s) recuperado(s) de ESPN.`);
+    if (stuck.forceClosed > 0) parts.push(`${stuck.forceClosed} partido(s) cerrado(s) sin marcador.`);
+    if (stuck.jornadasCompleted > 0) parts.push(`${stuck.jornadasCompleted} jornada(s) completada(s).`);
+    return { success: parts.join(" ") };
+  }
 
   const espnIds = finished.map((f) => f.fixture.id);
   const { data: dbMatches } = await supabase
@@ -135,9 +144,14 @@ export async function syncResults(): Promise<{ error?: string; success?: string 
     }
   }
 
-  return {
-    success: `${updatedCount} partido(s) actualizado(s), ${pointsCount} predicción(es) puntuadas.`,
-  };
+  const stuck = await syncStuckMatches(supabase);
+
+  const parts = [`${updatedCount} partido(s) actualizado(s), ${pointsCount} predicción(es) puntuadas.`];
+  if (stuck.recovered > 0) parts.push(`${stuck.recovered} partido(s) atascado(s) recuperado(s) de ESPN.`);
+  if (stuck.forceClosed > 0) parts.push(`${stuck.forceClosed} partido(s) cerrado(s) sin marcador.`);
+  if (stuck.jornadasCompleted > 0) parts.push(`${stuck.jornadasCompleted} jornada(s) completada(s) automáticamente.`);
+
+  return { success: parts.join(" ") };
 }
 
 export async function syncJornada(

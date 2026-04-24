@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getFixtures, getStandings } from "@/lib/api-football";
 import { calcPoints } from "@/lib/scoring";
+import { syncStuckMatches } from "@/lib/sync-stuck-matches";
 
 export const dynamic = "force-dynamic";
 
@@ -139,9 +140,15 @@ export async function GET(request: Request) {
     }
   }
 
+  // Auto-cerrar partidos pasados que ESPN no devolvió en el scoreboard de hoy
+  const stuck = await syncStuckMatches(supabase);
+
   return NextResponse.json({
     updated: updatedCount,
     predictionsScored: pointsCount,
     standingsCached: true,
+    stuckRecovered: stuck.recovered,
+    stuckForceClosed: stuck.forceClosed,
+    jornadasAutoCompleted: stuck.jornadasCompleted,
   });
 }
