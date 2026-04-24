@@ -69,6 +69,7 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
   const [saveStatus, setSaveStatus] = useState<{ error?: string; success?: string } | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showErrors, setShowErrors] = useState(false);
 
   // Un partido está bloqueado si: está en curso, ya terminó,
   // o el usuario ya envió predicción para ese partido.
@@ -94,15 +95,25 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
       }))
       .filter((p) => !isNaN(p.home) && !isNaN(p.away));
 
+  const isFieldEmpty = (matchId: string, side: "home" | "away") =>
+    (values[matchId]?.[side] ?? "") === "";
+
   const handleSaveClick = () => {
     if (!hasEditableMatches) return;
     setSaveStatus(null);
 
-    if (pendingPreds().length === 0) {
-      setSaveStatus({ error: "Completa al menos una predicción para los partidos disponibles." });
+    const editableMatches = matches.filter((m) => !isMatchLocked(m));
+    const hasIncomplete = editableMatches.some(
+      (m) => isFieldEmpty(m.id, "home") || isFieldEmpty(m.id, "away")
+    );
+
+    if (hasIncomplete) {
+      setShowErrors(true);
+      setSaveStatus({ error: "Completa el marcador de todos los partidos antes de guardar." });
       return;
     }
 
+    setShowErrors(false);
     setShowConfirm(true);
   };
 
@@ -284,7 +295,11 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
                           value={values[m.id]?.home ?? ""}
                           onChange={(e) => handleChange(m.id, "home", e.target.value)}
                           placeholder="0"
-                          className="w-11 h-11 rounded-md border border-input bg-background text-center text-base font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          className={`w-11 h-11 rounded-md border bg-background text-center text-base font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                            showErrors && isFieldEmpty(m.id, "home")
+                              ? "border-red-400 bg-red-50"
+                              : "border-input"
+                          }`}
                         />
                         <span className="text-muted-foreground font-bold">-</span>
                         <input
@@ -294,7 +309,11 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
                           value={values[m.id]?.away ?? ""}
                           onChange={(e) => handleChange(m.id, "away", e.target.value)}
                           placeholder="0"
-                          className="w-11 h-11 rounded-md border border-input bg-background text-center text-base font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          className={`w-11 h-11 rounded-md border bg-background text-center text-base font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                            showErrors && isFieldEmpty(m.id, "away")
+                              ? "border-red-400 bg-red-50"
+                              : "border-input"
+                          }`}
                         />
                       </>
                     )}
