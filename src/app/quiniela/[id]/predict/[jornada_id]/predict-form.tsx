@@ -5,7 +5,15 @@ import { upsertPredictions } from "./actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trophy, ArrowLeft, Lock, Save, Radio } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Trophy, ArrowLeft, Lock, Save, Radio, AlertTriangle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -60,6 +68,7 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
   const [values, setValues] = useState<Record<string, { home: string; away: string }>>(initValues);
   const [saveStatus, setSaveStatus] = useState<{ error?: string; success?: string } | null>(null);
   const [isPending, setIsPending] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   // Un partido está bloqueado si: está en curso, ya terminó,
   // o el usuario ya envió predicción para ese partido.
@@ -75,13 +84,8 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
     setValues((prev) => ({ ...prev, [matchId]: { ...prev[matchId], [side]: clean } }));
   };
 
-  const handleSubmit = async () => {
-    if (!hasEditableMatches) return;
-    setIsPending(true);
-    setSaveStatus(null);
-
-    // Solo enviar predicciones de partidos que aún no han empezado
-    const preds = matches
+  const pendingPreds = () =>
+    matches
       .filter((m) => !isMatchLocked(m))
       .map((m) => ({
         matchId: m.id,
@@ -90,11 +94,23 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
       }))
       .filter((p) => !isNaN(p.home) && !isNaN(p.away));
 
-    if (preds.length === 0) {
+  const handleSaveClick = () => {
+    if (!hasEditableMatches) return;
+    setSaveStatus(null);
+
+    if (pendingPreds().length === 0) {
       setSaveStatus({ error: "Completa al menos una predicción para los partidos disponibles." });
-      setIsPending(false);
       return;
     }
+
+    setShowConfirm(true);
+  };
+
+  const handleConfirm = async () => {
+    setShowConfirm(false);
+    setIsPending(true);
+
+    const preds = pendingPreds();
 
     const result = await upsertPredictions(quinielaId, jornadaId, preds);
     setSaveStatus(result);
@@ -317,7 +333,7 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
                 {saveStatus.success}
               </p>
             )}
-            <Button onClick={handleSubmit} disabled={isPending} className="w-full">
+            <Button onClick={handleSaveClick} disabled={isPending} className="w-full">
               <Save aria-hidden="true" className="h-4 w-4 mr-2" />
               {isPending ? "Guardando…" : "Guardar predicciones"}
             </Button>
@@ -330,6 +346,30 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
           </p>
         )}
       </div>
+
+      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle aria-hidden="true" className="h-5 w-5 text-yellow-500" />
+              ¿Confirmar predicciones?
+            </DialogTitle>
+            <DialogDescription>
+              Una vez guardadas <strong>no podrás modificarlas</strong>. Asegúrate de que los
+              marcadores que ingresaste son los correctos antes de continuar.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowConfirm(false)}>
+              Revisar
+            </Button>
+            <Button onClick={handleConfirm}>
+              <Save aria-hidden="true" className="h-4 w-4 mr-2" />
+              Sí, guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
