@@ -76,6 +76,7 @@ export function PredictForm({ quinielaId, jornadaId, jornada, matches, predictio
   const isMatchLocked = (m: Match) =>
     m.status === "finished" ||
     m.status === "live" ||
+    new Date() >= new Date(m.match_datetime) ||
     !!predState[m.id];
 
   const hasEditableMatches = matches.some((m) => !isMatchLocked(m));
