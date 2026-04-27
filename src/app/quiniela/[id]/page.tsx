@@ -186,10 +186,7 @@ export default async function QuinielaPage({ params }: Props) {
             <History aria-hidden="true" className="h-4 w-4 mr-1.5" />
             Mis jornadas
           </Link>
-          {owner
-            ? <DeleteQuinielaButton quinielaId={id} quinielaName={quiniela.name} />
-            : <LeaveQuinielaButton quinielaId={id} quinielaName={quiniela.name} />
-          }
+          {owner && <DeleteQuinielaButton quinielaId={id} quinielaName={quiniela.name} />}
         </div>
 
         <div className="grid gap-8 lg:grid-cols-2">
@@ -287,6 +284,12 @@ export default async function QuinielaPage({ params }: Props) {
           </section>
         </div>
       </div>
+
+      {!owner && (
+        <div className="fixed bottom-6 left-6">
+          <LeaveQuinielaButton quinielaId={id} quinielaName={quiniela.name} />
+        </div>
+      )}
     </main>
   );
 }
