@@ -38,7 +38,8 @@ export async function upsertPredictions(
     .from("matches")
     .select("id")
     .in("id", matchIds)
-    .eq("status", "upcoming");
+    .eq("status", "upcoming")
+    .gt("match_datetime", new Date().toISOString());
 
   const validIds = new Set(
     (validMatches ?? []).map((m) => m.id).filter((id) => !alreadyPredictedIds.has(id))
