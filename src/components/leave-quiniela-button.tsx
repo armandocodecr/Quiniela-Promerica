@@ -28,19 +28,15 @@ export function LeaveQuinielaButton({ quinielaId, quinielaName }: Props) {
 
   return (
     <>
-      <div className="relative group">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-muted-foreground p-2 hover:text-destructive hover:bg-destructive/10"
-          onClick={() => setOpen(true)}
-        >
-          <LogOut aria-hidden="true" className="h-4 w-4" />
-        </Button>
-        <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-xs text-background opacity-0 group-hover:opacity-100 transition-opacity">
-          Salir de la quiniela
-        </span>
-      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5"
+        onClick={() => setOpen(true)}
+      >
+        <LogOut aria-hidden="true" className="h-4 w-4" />
+        Salir de la quiniela
+      </Button>
 
       {error && (
         <p className="text-xs text-red-500">{error}</p>
